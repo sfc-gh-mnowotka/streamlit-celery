@@ -3,7 +3,8 @@ import celery
 from celery.result import allow_join_result
 import threading
 import time
-from tasks import add
+from tasks import add, save_stats
+from persistence import fetch_results
 
 app = celery.Celery(
     'project',
@@ -19,6 +20,11 @@ def start_celery():
     )
     worker.start()
 
+    beat = app.Beat(
+        include=['tasks']
+    )
+    beat.start()
+
 
 st.title("🥬Using with Celery")
 
@@ -26,6 +32,11 @@ if st.button("Start Celery!"):
     thread = threading.Thread(target=start_celery, name="Celery control thread")
     thread.daemon = True
     thread.start()
+
+if st.button("Schedule tasks"):
+    @app.on_after_fork.connect
+    def setup_periodic_tasks(sender, **kwargs):
+        sender.add_periodic_task(10.0, save_stats.s(), name='save every 10 seconds')
 
 if st.button("Add!"):
     result = add.delay(4, 4)
@@ -35,4 +46,8 @@ if st.button("Add!"):
                 time.sleep(1)
                 continue
         st.write(result.get())
+
+if st.button("Fetch results"):
+    results = fetch_results()
+    st.write(results)
 
