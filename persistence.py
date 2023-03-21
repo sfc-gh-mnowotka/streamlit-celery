@@ -6,12 +6,14 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 from typing import List
 
+from constants import STATS_TABLE_NAME, STATS_DB_URL
+
 # Set up the database model
 Base = declarative_base()
 
 
 class MyTable(Base):
-    __tablename__ = 'github_stats'
+    __tablename__ = STATS_TABLE_NAME
     date_key = Column(Integer, primary_key=True, default=text("(strftime('%s', 'now'))"))
     dataframe = Column(LargeBinary)
 
@@ -39,7 +41,7 @@ def fetch_dataframes(session, minutes: int = 15) -> List[pd.DataFrame]:
 
 
 def persist_dataframe(df: pd.DataFrame) -> None:
-    engine = create_engine('sqlite:///stats_database.sqlite', echo=False)
+    engine = create_engine(STATS_DB_URL, echo=False)
     create_table(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -47,7 +49,7 @@ def persist_dataframe(df: pd.DataFrame) -> None:
 
 
 def fetch_results(minutes: int = 15) -> List[pd.DataFrame]:
-    engine = create_engine('sqlite:///stats_database.sqlite', echo=False)
+    engine = create_engine(STATS_DB_URL, echo=False)
     Session = sessionmaker(bind=engine)
     session = Session()
     restored_dataframes = fetch_dataframes(session, minutes)

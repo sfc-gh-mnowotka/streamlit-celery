@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
-from celery import Celery
 
+from celery_utils import get_celery_app
 from persistence import persist_dataframe
 
-app = Celery('tasks', backend='rpc://', broker='sqla+sqlite:///celerydb.sqlite')
+app = get_celery_app()
 
 
 @app.task
