@@ -1,6 +1,6 @@
 import pandas as pd
 import pickle
-from sqlalchemy import create_engine, Column, String, LargeBinary, text
+from sqlalchemy import create_engine, Column, Integer, LargeBinary, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
@@ -12,7 +12,7 @@ Base = declarative_base()
 
 class MyTable(Base):
     __tablename__ = 'github_stats'
-    date_key = Column(String, primary_key=True, default=text('CURRENT_TIMESTAMP'))
+    date_key = Column(Integer, primary_key=True, default=text("(strftime('%s', 'now'))"))
     dataframe = Column(LargeBinary)
 
 
@@ -29,7 +29,8 @@ def insert_dataframe(session, df: pd.DataFrame) -> None:
 
 def fetch_dataframes(session, minutes: int = 15) -> List[pd.DataFrame]:
     time_threshold = datetime.utcnow() - timedelta(minutes=minutes)
-    result = session.query(MyTable).filter(MyTable.date_key >= time_threshold).all()
+    unix_time_threshold = int(time_threshold.timestamp())
+    result = session.query(MyTable).filter(MyTable.date_key >= unix_time_threshold).all()
 
     dataframes = []
     for row in result:
@@ -38,7 +39,7 @@ def fetch_dataframes(session, minutes: int = 15) -> List[pd.DataFrame]:
 
 
 def persist_dataframe(df: pd.DataFrame) -> None:
-    engine = create_engine('sqlite:///my_database.sqlite', echo=False)
+    engine = create_engine('sqlite:///stats_database.sqlite', echo=False)
     create_table(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -46,32 +47,8 @@ def persist_dataframe(df: pd.DataFrame) -> None:
 
 
 def fetch_results(minutes: int = 15) -> List[pd.DataFrame]:
-    engine = create_engine('sqlite:///my_database.sqlite', echo=False)
+    engine = create_engine('sqlite:///stats_database.sqlite', echo=False)
     Session = sessionmaker(bind=engine)
     session = Session()
     restored_dataframes = fetch_dataframes(session, minutes)
     return restored_dataframes
-
-
-def demo() -> None:
-    # Create a sample pandas DataFrame
-    data = {'A': [1, 2, 3],
-            'B': [4, 5, 6]}
-    df = pd.DataFrame(data)
-
-    # Create an SQLite database and connect to it
-    engine = create_engine('sqlite:///my_database.sqlite', echo=False)
-    create_table(engine)
-
-    # Insert the DataFrame into the table
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    insert_dataframe(session, df)
-
-    # Deserialize the DataFrame from the database and print dataframes inserted in the last 15 minutes
-    restored_dataframes = fetch_dataframes(session)
-    print("DataFrames inserted in the last 15 minutes:")
-    for restored_df in restored_dataframes:
-        print(restored_df)
-
-    session.close()
