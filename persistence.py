@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 from typing import List
+from sqlalchemy.exc import OperationalError
 
 from constants import STATS_TABLE_NAME, STATS_DB_URL
 
@@ -32,8 +33,10 @@ def insert_dataframe(session, df: pd.DataFrame) -> None:
 def fetch_dataframes(session, minutes: int = 15) -> List[pd.DataFrame]:
     time_threshold = datetime.utcnow() - timedelta(minutes=minutes)
     unix_time_threshold = int(time_threshold.timestamp())
-    result = session.query(MyTable).filter(MyTable.date_key >= unix_time_threshold).all()
-
+    try:
+        result = session.query(MyTable).filter(MyTable.date_key >= unix_time_threshold).all()
+    except OperationalError:
+        return []
     dataframes = []
     for row in result:
         dataframes.append(pickle.loads(row.dataframe))
