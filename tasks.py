@@ -1,10 +1,18 @@
 import pandas as pd
 import numpy as np
 
-from celery_utils import get_celery_app
+from celery_utils import app
 from persistence import persist_dataframe
+from constants import CELERY_TIMEZONE
 
-app = get_celery_app()
+app.conf.beat_schedule = {
+    'save-every-10-seconds': {
+        'task': 'tasks.save_stats',
+        'schedule': 10.0,
+        'args': []
+    },
+}
+app.conf.timezone = CELERY_TIMEZONE
 
 
 @app.task

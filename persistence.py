@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 
 from constants import STATS_TABLE_NAME, STATS_DB_URL
 
@@ -20,14 +21,20 @@ class MyTable(Base):
 
 
 def create_table(engine) -> None:
-    Base.metadata.create_all(engine)
+    try:
+        Base.metadata.create_all(engine)
+    except OperationalError:
+        pass
 
 
 def insert_dataframe(session, df: pd.DataFrame) -> None:
     serialized_df = pickle.dumps(df)
     new_entry = MyTable(dataframe=serialized_df)
-    session.add(new_entry)
-    session.commit()
+    try:
+        session.add(new_entry)
+        session.commit()
+    except SQLAlchemyError:
+        pass
 
 
 def fetch_dataframes(session, minutes: int = 15) -> List[pd.DataFrame]:
