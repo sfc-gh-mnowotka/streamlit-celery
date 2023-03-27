@@ -1,19 +1,22 @@
 import streamlit as st
 import threading
 import time
-from persistence import fetch_results
+from persistence import get_latest_leaderboard
 from celery_utils import start_celery_worker
 from celery_utils import start_celery_beat
 from celery_utils import is_celery_beat_working
 from celery_utils import are_workers_running
 from celery_utils import stop_celery
+from formatting import render_leaderboard
 
 
 st.title("🥬Using with Celery")
 
-if st.button("Fetch results"):
-    results = fetch_results()
-    st.write(results)
+results = get_latest_leaderboard()
+if not results:
+    st.warning("No results yet...")
+else:
+    render_leaderboard(results)
 
 with st.expander("⚙️ Celery controls"):
     col1, col2, col3 = st.columns(3)
