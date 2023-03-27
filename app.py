@@ -40,6 +40,9 @@ with st.expander("⚙️ Celery controls"):
             st.experimental_rerun()
 
     with col3:
-        if st.button("Stop celery"):
+        if st.button("🛑 Stop celery", disabled=not(is_beat_working or are_workers_started)):
             stop_celery()
+            with st.spinner("Stopping Celery..."):
+                time.sleep(1)
+            st.experimental_rerun()
 
