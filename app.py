@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit import config
 import threading
 import time
 from persistence import get_latest_leaderboard
@@ -10,7 +11,12 @@ from celery_utils import stop_celery
 from formatting import render_leaderboard
 
 
-st.title("🥬Using with Celery")
+st.title("Github Issues Leaderboard")
+
+address = config.get_option("server.address")
+port = config.get_option("server.port")
+st.write(address)
+st.write(port)
 
 results = get_latest_leaderboard()
 if not results:
@@ -18,9 +24,9 @@ if not results:
 else:
     render_leaderboard(results)
 
-with st.expander("⚙️ Celery controls"):
-    col1, col2, col3 = st.columns(3)
-    with col1:
+with st.sidebar:
+    with st.expander("⚙️ Celery controls"):
+
         is_beat_working = is_celery_beat_working()
         label = "💓 Start Celery Beat!" if not is_beat_working else "💓 Celery Beat Started!"
         if st.button(label, disabled=is_beat_working):
@@ -31,7 +37,6 @@ with st.expander("⚙️ Celery controls"):
                 time.sleep(1)
             st.experimental_rerun()
 
-    with col2:
         are_workers_started = are_workers_running()
         label = "🔨Start Celery Workers!" if not are_workers_started else "🔨 Celery Workers Started!"
         if st.button(label, disabled=are_workers_started):
@@ -42,7 +47,6 @@ with st.expander("⚙️ Celery controls"):
                 time.sleep(1)
             st.experimental_rerun()
 
-    with col3:
         if st.button("🛑 Stop celery", disabled=not(is_beat_working or are_workers_started)):
             stop_celery()
             with st.spinner("Stopping Celery..."):
