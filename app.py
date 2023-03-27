@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit import config
 import threading
 import time
 from persistence import get_latest_leaderboard
@@ -9,14 +8,12 @@ from celery_utils import is_celery_beat_working
 from celery_utils import are_workers_running
 from celery_utils import stop_celery
 from formatting import render_leaderboard
+from streamlit_js_eval import get_page_location
 
 
 st.title("Github Issues Leaderboard")
 
-address = config.get_option("server.address")
-port = config.get_option("server.port")
-st.write(address)
-st.write(port)
+st.write(get_page_location())
 
 results = get_latest_leaderboard()
 if not results:
