@@ -1,7 +1,6 @@
 import streamlit as st
 import threading
 import time
-import psutil
 from persistence import get_latest_leaderboard
 from celery_utils import start_celery_worker
 from celery_utils import start_celery_beat
@@ -13,9 +12,6 @@ from streamlit_js_eval import get_page_location
 
 
 st.title("Github Issues Leaderboard")
-
-for proc in psutil.process_iter(['pid', 'name']):
-    st.write(proc.info)
 
 st.write(get_page_location())
 

@@ -1,6 +1,9 @@
+from typing import List
+
 import celery
 from pathlib import Path
 import subprocess
+import psutil
 from constants import CELERY_MAIN_PREFIX
 from constants import CELERY_BACKEND_URL
 from constants import CELERY_BROKER_URL
@@ -67,34 +70,21 @@ def stop_celery():
     broker_file.unlink(missing_ok=True)
 
 
+def _find_process_pids(command: str) -> List[str]:
+    ret = []
+    for proc in psutil.process_iter(['pid', 'cmdline']):
+        if proc.info['cmdline'] and command in ' '.join(proc.info['cmdline']):
+            ret.append(str(proc.info['pid']))
+    return ret
+
+
 def _stop_process(command: str) -> None:
-    grep_command = _prepare_command_for_grep(command)
-    p1 = subprocess.Popen(["ps"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["grep"] + [f"{grep_command}"], stdin=p1.stdout, stdout=subprocess.PIPE)
-    p3 = subprocess.Popen(["awk", "{ print $1 }"], stdin=p2.stdout, stdout=subprocess.PIPE)
-    p1.stdout.close()
-    p2.stdout.close()
-    output = p3.communicate()[0]
-    pids = [pid.decode('utf-8') for pid in output.split()]
+    pids = _find_process_pids(command)
     subprocess.call(["kill", "-9"] + pids)
 
 
 def _is_process_running(command: str) -> bool:
-    grep_command = _prepare_command_for_grep(command)
-    p1 = subprocess.Popen(["ps"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["grep"] + [f"{grep_command}"], stdin=p1.stdout, stdout=subprocess.PIPE)
-    p3 = subprocess.Popen(["wc", "-l"], stdin=p2.stdout, stdout=subprocess.PIPE)
-    p1.stdout.close()
-    p2.stdout.close()
-    output = p3.communicate()[0]
-    return int(output.strip()) > 0
+    pids = _find_process_pids(command)
+    return len(pids) > 0
 
-
-def _prepare_command_for_grep(command: str):
-    """
-    ps ... | grep returns grep itself so use this hack
-    https://www.cyberciti.biz/tips/grepping-ps-output-without-getting-grep.html
-    """
-    first_letter, *rest = command
-    return f"[{first_letter}]{''.join(rest)}"
 
