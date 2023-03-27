@@ -68,15 +68,33 @@ def stop_celery():
 
 
 def _stop_process(command: str) -> None:
-    subprocess.call(["pkill", "-9", "-f"] + [f"{command}"])
+    grep_command = _prepare_command_for_grep(command)
+    p1 = subprocess.Popen(["ps"], stdout=subprocess.PIPE)
+    p2 = subprocess.Popen(["grep"] + [f"{grep_command}"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    p3 = subprocess.Popen(["awk", "{ print $1 }"], stdin=p2.stdout, stdout=subprocess.PIPE)
+    p1.stdout.close()
+    p2.stdout.close()
+    output = p3.communicate()[0]
+    pids = [pid.decode('utf-8') for pid in output.split()]
+    subprocess.call(["kill", "-9"] + pids)
 
 
 def _is_process_running(command: str) -> bool:
-    print(f"Checking if {command} is running")
-    p1 = subprocess.Popen(["pgrep", "-f"] + [f"{command}"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["wc", "-l"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    grep_command = _prepare_command_for_grep(command)
+    p1 = subprocess.Popen(["ps"], stdout=subprocess.PIPE)
+    p2 = subprocess.Popen(["grep"] + [f"{grep_command}"], stdin=p1.stdout, stdout=subprocess.PIPE)
+    p3 = subprocess.Popen(["wc", "-l"], stdin=p2.stdout, stdout=subprocess.PIPE)
     p1.stdout.close()
-    print(f'pgrep -f "{command}" | wc -l')
-    output = p2.communicate()[0]
+    p2.stdout.close()
+    output = p3.communicate()[0]
     return int(output.strip()) > 0
+
+
+def _prepare_command_for_grep(command: str):
+    """
+    ps ... | grep returns grep itself so use this hack
+    https://www.cyberciti.biz/tips/grepping-ps-output-without-getting-grep.html
+    """
+    first_letter, *rest = command
+    return f"[{first_letter}]{''.join(rest)}"
 
