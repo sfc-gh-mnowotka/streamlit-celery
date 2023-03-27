@@ -1,23 +1,16 @@
 import pandas as pd
 import streamlit as st
-import numpy as np
 from ghapi.all import GhApi, paged
 
 from celery_utils import app
 from celery.schedules import crontab
-from persistence import persist_dataframe, save_leaderboard
+from persistence import save_leaderboard
 from constants import CELERY_TIMEZONE
 
 app.conf.beat_schedule = {
-    'save-every-10-seconds': {
-        'task': 'tasks.save_stats',
-        'schedule': 10.0,
-        'args': []
-    },
-
     'generate-leaderboard-every-day': {
         'task': 'tasks.compute_leaderboard',
-        'schedule': crontab(hour=13, minute=46),
+        'schedule': crontab(hour=4, minute=0),
         'args': []
     },
 }
@@ -34,12 +27,6 @@ def compute_leaderboard():
     issue_numbers = all_issues.query("reactions_total_count > 0").number.unique().tolist()
     reactions_df = get_overall_reactions(issue_numbers)
     save_leaderboard(all_issues, reactions_df)
-
-
-@app.task
-def save_stats():
-    df = pd.DataFrame(np.random.randint(0, 100, size=(15, 4)), columns=list('ABCD'))
-    persist_dataframe(df)
 
 
 def get_overall_issues() -> pd.DataFrame:
