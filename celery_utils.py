@@ -1,9 +1,11 @@
+import signal
 from typing import List
 
 import celery
 from pathlib import Path
 import subprocess
 import psutil
+import os
 from constants import CELERY_MAIN_PREFIX
 from constants import CELERY_BACKEND_URL
 from constants import CELERY_BROKER_URL
@@ -80,7 +82,7 @@ def _find_process_pids(command: str) -> List[str]:
 
 def _stop_process(command: str) -> None:
     pids = _find_process_pids(command)
-    subprocess.call(["kill", "-9"] + pids)
+    [os.kill(int(pid), signal.SIGKILL) for pid in pids]
 
 
 def _is_process_running(command: str) -> bool:
