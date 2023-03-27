@@ -13,7 +13,7 @@ from streamlit_js_eval import get_page_location
 
 st.title("Github Issues Leaderboard")
 
-# st.write(get_page_location())
+st.write(get_page_location())
 
 results = get_latest_leaderboard()
 if not results:

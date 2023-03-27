@@ -1,3 +1,5 @@
+import asyncio
+import websockets
 import pandas as pd
 import streamlit as st
 from ghapi.all import GhApi, paged
@@ -6,6 +8,7 @@ from celery_utils import app
 from celery.schedules import crontab
 from persistence import save_leaderboard
 from constants import CELERY_TIMEZONE
+from constants import WS_SUFFIX
 
 app.conf.beat_schedule = {
     'generate-leaderboard-every-day': {
@@ -27,6 +30,19 @@ def compute_leaderboard():
     issue_numbers = all_issues.query("reactions_total_count > 0").number.unique().tolist()
     reactions_df = get_overall_reactions(issue_numbers)
     save_leaderboard(all_issues, reactions_df)
+
+
+async def connect(url):
+    async with websockets.connect(url) as websocket:
+        await websocket.send("Hello world!")
+        await websocket.recv()
+
+
+@app.task
+def keep_alive(host, protocol):
+    ws_protocol = "ws://" if protocol == "http:" else "wss://"
+    url = f"{ws_protocol}{host}{WS_SUFFIX}"
+    asyncio.run(connect(url))
 
 
 def get_overall_issues() -> pd.DataFrame:

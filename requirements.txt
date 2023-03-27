@@ -7,3 +7,4 @@ ghapi==1.0.3
 htbuilder==0.6.1
 streamlit-js-eval==0.1.5
 psutil==5.9.4
+websockets==10.4

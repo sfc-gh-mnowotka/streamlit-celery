@@ -12,6 +12,8 @@ CELERY_BEAT_COMMAND = 'celery -A tasks beat --loglevel=info'
 STATS_DB_URL = 'sqlite:///stats_database.sqlite'
 STATS_TABLE_NAME = 'github_stats'
 
+WS_SUFFIX = "/_stcore/stream"
+
 TODAY = datetime.date.today()
 A_WEEK_AGO = TODAY - datetime.timedelta(days=7)
 A_MONTH_AGO = TODAY - datetime.timedelta(days=30)
