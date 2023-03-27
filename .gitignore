@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+########################################################################
+# Streamlit
+########################################################################
+.streamlit/
+lib/streamlit/static
+streamlit-storage
