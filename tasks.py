@@ -1,6 +1,9 @@
 import asyncio
+import logging
 import websockets
+from websockets.exceptions import InvalidStatusCode
 import pandas as pd
+import requests
 import streamlit as st
 from ghapi.all import GhApi, paged
 
@@ -13,6 +16,9 @@ from constants import IFRAME_PATH
 from constants import PAGE_LOCATION_FILE
 import json
 
+
+logging.basicConfig()
+logger = logging.getLogger("tasks")
 
 def get_page_location():
     with open(PAGE_LOCATION_FILE) as json_file:
@@ -46,11 +52,36 @@ def compute_leaderboard():
     save_leaderboard(all_issues, reactions_df)
 
 
-async def connect(url):
-    async with websockets.connect(url) as websocket:
-        await websocket.send("Hello world!")
-        await websocket.recv()
-
+async def connect(url, origin, host):
+    session = requests.Session()
+    response = session.get(origin,
+                           headers={
+                               'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+                           })
+    cookies = "; ".join([f"{key}={value}" for key, value in response.cookies])
+    try:
+        async with websockets.connect(
+                url,
+                user_agent_header="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+                extra_headers={
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+                    "Pragma": "no-cache",
+                    "Cache-Control": "no-cache",
+                    "Host": host,
+                    "Origin": origin,
+                    "Cookie": "_ga=GA1.2.261696798.1670256797; GCP_IAP_UID=101202930590561361811; _gid=GA1.2.1742699608.1679925473; streamlit_session=MTY3OTkzNDAzMHx4RTZVSElWd2NmOWt1dlM3RTFEU2FfRU1BbEZOYXhickhpV1p0Y0hlcXRaR3VPMkUyemRqTVEwX3ZWRjA1aG1QOGZzdy1wV3psOFd6TVY2TFJiRGdEaEtyTWdpUVNJTUJnNjJ0alR1NzJoaTZXZnZERWM3Y0lMelpFV0ZFem52OXU4OHU0WUctcDRaaTVGTXhiTVAxZThMRjU1N2xJSmxUcktVLVc5dGNTRW5XbmNTVk8tclZwWlByMGFtejNLNVEwMmxXc0J2R1NoRWMwd1V2LWtmRFo5VFlqS0tXT0NNPXzY3xkgCOFch3a_V6ZpJs73LveX1NGbcCxserzBsLA8Mg==; hubspotutk=a2cbc5a39e9fc8f5b18483d0f6f69d6b; __hssrc=1; _streamlit_csrf=MTY3OTk5MTE2OHxJa1ZtUzB4amEwODJjRFZhVGpoSFZGbGlhREpUVkdkSVNqUXhTRGt5YVZOT01GbGhPSFp4YUhOTE9GazlJZ289fIXmugk65XCnbVFkVzkH5XtqfsP8kmwRl49FgXmL9fMM; ajs_user_id=c4991f18-f9ba-5ee0-93b0-656631c7b9a6; ajs_anonymous_id=1b1d879a-6e2d-47bf-9659-716c709d4fed; _dd_s=logs=1&id=d13cce1e-ebb5-4f40-81d9-364dc086ac83&created=1680007632707&expire=1680008532707; _dc_gtm_UA-122023594-8=1; __hstc=225580997.a2cbc5a39e9fc8f5b18483d0f6f69d6b.1679934032241.1679991673630.1680007632990.5; __hssc=225580997.1.1680007632990"
+                }
+        ) as websocket:
+            await websocket.send("Hello world!")
+            await websocket.recv()
+    except InvalidStatusCode as e:
+        logger.info(e)
+        logger.info(e.status_code)
+        logger.info(e.headers)
+        logger.info(cookies)
 
 @app.task
 def keep_alive(location):
@@ -58,8 +89,11 @@ def keep_alive(location):
         return
     ws_protocol = "ws://" if location["protocol"] == "http:" else "wss://"
     iframe = IFRAME_PATH if IFRAME_PATH in  location["pathname"] else ""
-    url = f'{ws_protocol}{location["host"]}{iframe}{WS_SUFFIX}'
-    asyncio.run(connect(url))
+    # url = f'{ws_protocol}{location["host"]}{iframe}{WS_SUFFIX}'
+    url = "ws://localhost:8504/_stcore/stream"
+    logger.info("URL")
+    logger.info(url)
+    asyncio.run(connect(url, location["origin"], location["host"]))
 
 
 def get_overall_issues() -> pd.DataFrame:
