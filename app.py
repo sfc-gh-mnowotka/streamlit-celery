@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit import config
 import threading
 import time
 from persistence import get_latest_leaderboard
@@ -13,6 +14,9 @@ from streamlit_js_eval import get_page_location
 
 
 st.title("Github Issues Leaderboard")
+
+address = config.get_option("server.address")
+port = config.get_option("server.port")
 
 try:
     location = get_page_location()
