@@ -1,4 +1,7 @@
+import asyncio
 import logging
+import websockets
+from websockets.exceptions import InvalidStatusCode
 import pandas as pd
 import streamlit as st
 from ghapi.all import GhApi, paged
@@ -7,6 +10,8 @@ from celery_utils import app
 from celery.schedules import crontab
 from persistence import save_leaderboard
 from constants import CELERY_TIMEZONE
+from constants import IFRAME_PATH
+from constants import WS_SUFFIX
 from constants import PAGE_LOCATION_FILE
 import json
 
@@ -26,6 +31,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(hour=4, minute=0),
         'args': []
     },
+    'keep-alive': {
+        'task': 'tasks.keep_alive',
+        'schedule': 10.0,
+        'args': [get_page_location()]
+    },
 }
 app.conf.timezone = CELERY_TIMEZONE
 
@@ -40,6 +50,34 @@ def compute_leaderboard():
     issue_numbers = all_issues.query("reactions_total_count > 0").number.unique().tolist()
     reactions_df = get_overall_reactions(issue_numbers)
     save_leaderboard(all_issues, reactions_df)
+
+
+async def connect(url, origin, host):
+    try:
+        async with websockets.connect(
+                url,
+                user_agent_header="",
+                extra_headers={
+                    "Host": host,
+                    "Origin": origin,
+                }
+        ) as websocket:
+            await websocket.recv()
+    except InvalidStatusCode as e:
+        logger.info(e)
+        logger.info(e.status_code)
+        logger.info(e.headers)
+
+
+@app.task
+def keep_alive(location):
+    if not location:
+        return
+    ws_protocol = "ws://" if location["protocol"] == "http:" else "wss://"
+    iframe = IFRAME_PATH if IFRAME_PATH in location["pathname"] else ""
+    url = f'{ws_protocol}{location["host"]}{iframe}{WS_SUFFIX}'
+    logger.info(f"URL: {url}")
+    asyncio.run(connect(url, location["origin"], location["host"]))
 
 
 def get_overall_issues() -> pd.DataFrame:
