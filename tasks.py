@@ -33,7 +33,7 @@ app.conf.beat_schedule = {
     },
     'keep-alive': {
         'task': 'tasks.keep_alive',
-        'schedule': 10.0,
+        'schedule': 60 * 60 * 24,
         'args': [get_page_location()]
     },
 }
