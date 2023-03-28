@@ -1,5 +1,6 @@
 import pandas as pd
 import pickle
+import json
 from sqlalchemy import create_engine, Column, Date, Integer, LargeBinary, UniqueConstraint, desc, func, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -8,6 +9,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import SQLAlchemyError
 
 from constants import STATS_DB_URL
+from constants import PAGE_LOCATION_FILE
 
 # Set up the database model
 Base = declarative_base()
@@ -55,3 +57,7 @@ def get_latest_leaderboard() -> Optional[Tuple[pd.DataFrame, pd.DataFrame]]:
     reactions_df = pickle.loads(latest_result.reactions)
     return issues_df, reactions_df
 
+
+def save_location(location):
+    with open(PAGE_LOCATION_FILE, 'w') as location_file:
+        json.dump(location, location_file)

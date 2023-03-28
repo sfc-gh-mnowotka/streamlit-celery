@@ -13,6 +13,8 @@ STATS_DB_URL = 'sqlite:///stats_database.sqlite'
 STATS_TABLE_NAME = 'github_stats'
 
 WS_SUFFIX = "/_stcore/stream"
+IFRAME_PATH = "/~/+"
+PAGE_LOCATION_FILE = "page_location.json"
 
 TODAY = datetime.date.today()
 A_WEEK_AGO = TODAY - datetime.timedelta(days=7)

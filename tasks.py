@@ -9,12 +9,26 @@ from celery.schedules import crontab
 from persistence import save_leaderboard
 from constants import CELERY_TIMEZONE
 from constants import WS_SUFFIX
+from constants import IFRAME_PATH
+from constants import PAGE_LOCATION_FILE
+import json
+
+
+def get_page_location():
+    with open(PAGE_LOCATION_FILE) as json_file:
+        return json.load(json_file)
+
 
 app.conf.beat_schedule = {
     'generate-leaderboard-every-day': {
         'task': 'tasks.compute_leaderboard',
         'schedule': crontab(hour=4, minute=0),
         'args': []
+    },
+    'keep-alive': {
+        'task': 'tasks.keep_alive',
+        'schedule': 10.0,
+        'args': [get_page_location()]
     },
 }
 app.conf.timezone = CELERY_TIMEZONE
@@ -39,9 +53,12 @@ async def connect(url):
 
 
 @app.task
-def keep_alive(host, protocol):
-    ws_protocol = "ws://" if protocol == "http:" else "wss://"
-    url = f"{ws_protocol}{host}{WS_SUFFIX}"
+def keep_alive(location):
+    if not location:
+        return
+    ws_protocol = "ws://" if location["protocol"] == "http:" else "wss://"
+    iframe = IFRAME_PATH if IFRAME_PATH in  location["pathname"] else ""
+    url = f'{ws_protocol}{location["host"]}{iframe}{WS_SUFFIX}'
     asyncio.run(connect(url))
 
 

@@ -2,6 +2,7 @@ import streamlit as st
 import threading
 import time
 from persistence import get_latest_leaderboard
+from persistence import save_location
 from celery_utils import start_celery_worker
 from celery_utils import start_celery_beat
 from celery_utils import is_celery_beat_working
@@ -13,7 +14,11 @@ from streamlit_js_eval import get_page_location
 
 st.title("Github Issues Leaderboard")
 
-st.write(get_page_location())
+try:
+    location = get_page_location()
+    save_location(location)
+except TypeError:
+    pass
 
 results = get_latest_leaderboard()
 if not results:
