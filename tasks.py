@@ -90,7 +90,7 @@ def keep_alive(location):
     ws_protocol = "ws://" if location["protocol"] == "http:" else "wss://"
     iframe = IFRAME_PATH if IFRAME_PATH in  location["pathname"] else ""
     # url = f'{ws_protocol}{location["host"]}{iframe}{WS_SUFFIX}'
-    url = "ws://localhost:8504/_stcore/stream"
+    url = "ws://localhost:8501/_stcore/stream"
     logger.info("URL")
     logger.info(url)
     asyncio.run(connect(url, location["origin"], location["host"]))
