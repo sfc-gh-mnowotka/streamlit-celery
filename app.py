@@ -15,12 +15,6 @@ from streamlit_js_eval import get_page_location
 
 st.title("Github Issues Leaderboard")
 
-address = config.get_option("server.address")
-port = config.get_option("server.port")
-
-st.write(address)
-st.write(port)
-
 try:
     location = get_page_location()
     save_location(location)
